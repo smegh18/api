@@ -11,7 +11,7 @@ func (d *DomainDB) Login(name string) (string, string, error) {
 	// var storedPassword, email string
 	query := "SELECT password, email FROM users WHERE name=$1"
 	if err := d.db.QueryRow(query, "kumkum").Scan(&credentials.Password, &credentials.Email); err != nil {
-		return "", "nhk", err
+		return "", "", err
 	}
 	return credentials.Password, credentials.Email, nil
 }
