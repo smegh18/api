@@ -12,10 +12,11 @@ func (u *UserHandler) GetUsersHandler(c *gin.Context) {
 	if error != nil {
 		panic(error)
 	}
+	defer rows.Close()
 	var users []model.User
 	for rows.Next() {
 		var user model.User
-		if err := rows.Scan(&user.ID, &user.Name, &user.Email); err != nil {
+		if err := rows.Scan(&user.ID, &user.Name, &user.Email, &user.Password); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}

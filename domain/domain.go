@@ -6,9 +6,19 @@ import (
 	"database/sql"
 )
 
+func (d *DomainDB) Login(name string) (string, string, error) {
+	var credentials m.User
+	// var storedPassword, email string
+	query := "SELECT password, email FROM users WHERE name=$1"
+	if err := d.db.QueryRow(query, "kumkum").Scan(&credentials.Password, &credentials.Email); err != nil {
+		return "", "nhk", err
+	}
+	return credentials.Password, credentials.Email, nil
+}
+
 func (d *DomainDB) CreateUser(user m.User) error {
-	sql := `INSERT INTO users (name, email) VALUES ($1, $2) RETURNING id`
-	err := d.db.QueryRow(sql, user.Name, user.Email).Scan(&user.ID)
+	sql := `INSERT INTO users (name, email,password) VALUES ($1, $2, $3) RETURNING id`
+	err := d.db.QueryRow(sql, user.Name, user.Email, user.Password).Scan(&user.ID)
 	if err != nil {
 		return err
 	}
@@ -16,20 +26,20 @@ func (d *DomainDB) CreateUser(user m.User) error {
 }
 
 func (d *DomainDB) GetUsers() (*sql.Rows, error) {
-	rows, err := d.db.Query("SELECT id, name, email FROM users")
+	rows, err := d.db.Query("SELECT id, name, email, password FROM users")
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 	return rows, nil
+
 }
 
-func (d *DomainDB) GetUser(id string, user m.User) error {
-	err := d.db.QueryRow("SELECT id, name, email FROM users WHERE id=$1", id).Scan(&user.ID, &user.Name, &user.Email)
+func (d *DomainDB) GetUser(id string, user m.User) (m.User, error) {
+	err := d.db.QueryRow("SELECT id, name, email, password FROM users WHERE id=$1", id).Scan(&user.ID, &user.Name, &user.Email, &user.Password)
 	if err != nil {
-		return err
+		return user, err
 	}
-	return nil
+	return user, nil
 }
 
 func (d *DomainDB) DeleteUser(id string) error {
@@ -42,8 +52,8 @@ func (d *DomainDB) DeleteUser(id string) error {
 }
 
 func (d *DomainDB) UpdateUser(user m.User, id string) error {
-	sql := `UPDATE users SET name=$1, email=$2 WHERE id=$3`
-	_, err := d.db.Exec(sql, user.Name, user.Email, id)
+	sql := `UPDATE users SET name=$1, email=$2, password=$3 WHERE id=$3`
+	_, err := d.db.Exec(sql, user.Name, user.Email, user.Password, id)
 	if err != nil {
 		return err
 	}
@@ -73,7 +83,8 @@ type SQLDatabase interface {
 type Service interface {
 	CreateUser(user m.User) error
 	GetUsers() (*sql.Rows, error)
-	GetUser(id string, user m.User) error
+	GetUser(id string, user m.User) (m.User, error)
 	DeleteUser(id string) error
 	UpdateUser(user m.User, id string) error
+	Login(name string) (string, string, error)
 }
